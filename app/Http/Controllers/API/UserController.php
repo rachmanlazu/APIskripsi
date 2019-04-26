@@ -35,7 +35,7 @@ class UserController extends Controller
      * 
      * @return \Illuminate\Http\Response 
      */
-    public function register(Request $request)
+    public function register(Request $request, Pasien $pasien)
     {
         $validator = Validator::make($request->all(), [
             'nama' => 'required',
@@ -48,12 +48,20 @@ class UserController extends Controller
             return response()->json(['error'=>$validator->errors()], 401);            
         }
 
-        $input = $request->all();
+        $pasien = $pasien->create([
+            'nama'  => $request->nama,
+            'email' => $request->email,
+            'password'  => bcrypt($request->password),
+        ]);
+
+        // $input = $request->all();
         
-        $input['password'] = bcrypt($input['password']);
-        $user = Pasien::create($input);
-        $success['token'] =  $user->createToken('MyApp')->accessToken;
-        $success['name'] =  $user->nama;
+        // $input['password'] = bcrypt($input['password']);
+        // $input['nama'] =  $input['nama'];
+        // dd($input);
+        // $user = Pasien::create($input);
+        $success['token'] =  $pasien->createToken('MyApp')->accessToken;
+      
 
         return response()->json(['success'=>$success], $this->successStatus);
     }
@@ -66,6 +74,23 @@ class UserController extends Controller
     public function details()
     {
         $user = Auth::user();
-        return response()->json(['success' => $user], $this->successStatus);
+        // $user = 
+        // return response()->json(
+        //     ['success' => $user], 
+        //     $this->successStatus);
+        if($user){
+            return response()->json([
+                'status' => $this->successStatus,
+                'success' => true,
+                'data' => [
+                    'nama' => $user->nama,
+                    'no_member' => $user->no_member,
+                    'no_telp' => $user->no_telp,
+                    'tempat_tinggal' => $user->tempat_tinggal,
+                ],
+                
+            ]);
+        } 
+        
     }
 }

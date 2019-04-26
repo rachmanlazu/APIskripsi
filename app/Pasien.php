@@ -16,7 +16,8 @@ class Pasien extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'password',
+        'nama', 'email', 'password', 'no_member', 'jenis_kelamin', 
+        'usia', 'pekerjaan', 'no_telp', 'alergi', 'tempat_tinggal'
     ];
 
     /**
@@ -27,5 +28,9 @@ class Pasien extends Authenticatable
     protected $hidden = [
         'password', 'remember_token',
     ];
+
+    public function reservasi(){
+        return $this->belongsTo(Reservasi::class);
+    }
 
 }
