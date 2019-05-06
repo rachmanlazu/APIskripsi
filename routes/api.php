@@ -20,7 +20,9 @@ Route::post('login', 'API\UserController@login');
 Route::post('register', 'API\UserController@register');
 // Route::get('details', 'API\UserController@details');
 Route::group(['middleware' => 'auth:api'], function(){
-    Route::get('details', 'API\UserController@details');
-    // Route
+    Route::get('pasien/getDetail', 'API\UserController@getDetail')->name('pasien.getDetail');
+    Route::patch('pasien/setDetail', 'API\UserController@setDetail')->name('pasien.setDetail');
+
+    Route::post('pasien/ambilAntrian', 'API\ReservasiController@ambilAntrian')->name('pasien.ambilAntrian');
 
 });

@@ -18,6 +18,7 @@ class CreateReservasisTable extends Migration
             $table->integer('pasien_id')->unsigned();
             $table->integer('nomor_antrian');
             $table->dateTimeTz('tanggal');
+            $table->boolean('status');
 
             $table->foreign('pasien_id')->references('id')->on('pasiens');
 

@@ -71,7 +71,7 @@ class UserController extends Controller
      * 
      * @return \Illuminate\Http\Response 
      */
-    public function details()
+    public function getDetail()
     {
         $user = Auth::user();
         // $user = 
@@ -87,6 +87,35 @@ class UserController extends Controller
                     'no_member' => $user->no_member,
                     'no_telp' => $user->no_telp,
                     'tempat_tinggal' => $user->tempat_tinggal,
+                    'alergi' => $user->alergi
+                ],
+                
+            ]);
+        } 
+        
+    }
+
+    public function setDetail(Request $request)
+    {
+        $user = Auth::user();
+        if($user){
+            $user->update([
+                'nama'          => $request->input('nama'),
+                'no_member'     => $request->input('no_member'),
+                'no_telp'       => $request->input('no_telp'),
+                'tempat_tinggal'=> $request->input('tempat_tinggal'),
+                'alergi'        => $request->input('alergi')
+            ]);
+
+            return response()->json([
+                'status' => $this->successStatus,
+                'success' => true,
+                'data' => [
+                    'nama' => $user->nama,
+                    'no_member' => $user->no_member,
+                    'no_telp' => $user->no_telp,
+                    'tempat_tinggal' => $user->tempat_tinggal,
+                    'alergi' => $user->alergi
                 ],
                 
             ]);
