@@ -33,4 +33,8 @@ class Pasien extends Authenticatable
         return $this->belongsTo(Reservasi::class);
     }
 
+    public function rekam_medis(){
+        return $this->hasMany(rekam_medis::class);
+    }
+
 }

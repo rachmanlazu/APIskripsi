@@ -122,4 +122,30 @@ class UserController extends Controller
         } 
         
     }
+
+    public function editDetail(Request $request)
+    {
+        $user = Auth::user();
+        if($user){
+            $user->update([
+                'nama'          => $request->input('nama'),
+                'no_telp'       => $request->input('no_telp'),
+                'tempat_tinggal'=> $request->input('tempat_tinggal'),
+                'alergi'        => $request->input('alergi')
+            ]);
+
+            return response()->json([
+                'status' => $this->successStatus,
+                'success' => true,
+                'data' => [
+                    'nama' => $user->nama,
+                    'no_telp' => $user->no_telp,
+                    'tempat_tinggal' => $user->tempat_tinggal,
+                    'alergi' => $user->alergi
+                ],
+                
+            ]);
+        } 
+        
+    }
 }

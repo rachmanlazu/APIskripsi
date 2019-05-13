@@ -15,10 +15,14 @@ class CreateRekamMedisTable extends Migration
     {
         Schema::create('rekam_medis', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('id_pasien')->nullable();
-            $table->integer('id_daftar_perawatan')->nullable();
             $table->integer('status')->nullable();
             $table->timestamps();
+
+            $table->integer('pasien_id')->unsigned();
+            $table->integer('perawatan_id')->unsigned();
+
+            $table->foreign('pasien_id')->references('id')->on('pasiens');
+            $table->foreign('perawatan_id')->references('id')->on('perawatans');
         });
     }
 

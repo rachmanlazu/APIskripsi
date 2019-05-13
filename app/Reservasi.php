@@ -8,7 +8,7 @@ class Reservasi extends Model
 {
     protected $fillable = [
         'pasien_id', 'nomor_antrian', 
-        'tanggal', 'status'
+        'tanggal', 'status', 'jam'
     ];
 
     public function pasien(){
