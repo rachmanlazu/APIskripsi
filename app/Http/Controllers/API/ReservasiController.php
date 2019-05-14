@@ -11,6 +11,7 @@ use App\Reservasi;
 use App\Perawatan;
 use App\rekam_medis;
 use App\Produk;
+use App\pembelian_produk;
 use Illuminate\Support\Facades\Auth;
 use Validator;
 
@@ -19,9 +20,10 @@ class ReservasiController extends Controller
     public $successStatus = 200;
     public function ambilAntrian(Request $request, Reservasi $reservasi)
     {
+        $tanggal        = date('Y-m-d');
         $user = Auth::user();
         if($user){
-            $cek_antrian = Reservasi::where('pasien_id', $user->id)->first();
+            $cek_antrian = Reservasi::where([['pasien_id', $user->id], ['status', 0], ['tanggal', $tanggal]])->first();
 
             if($cek_antrian){
                 return response()->json([
@@ -32,7 +34,7 @@ class ReservasiController extends Controller
             }
 
             $jam            = date('H');
-            $tanggal        = date('Y-m-d');
+           
             $jumlah_antrian = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->count();
             
             // ->order_by('upload_time', 'desc')->first()
@@ -190,12 +192,66 @@ class ReservasiController extends Controller
         ]);
     }
 
-    // public function detailAntrian(Request $request, Reservasi $reservasi)
-    // {
-    //     $user = Auth::user();
-    //     if($user){
-    //         $db_antrian_pertama = Reservasi::select('nomor_antrian')->where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'asc')->first();
-    //     }
+    public function getAntrian(Request $request, Reservasi $reservasi)
+    {
+        $user = Auth::user();
+        $tanggal        = date('Y-m-d');
+        if($user){
+            $db_antrian_pertama = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'asc')->first();
+            
+            if(!$db_antrian_pertama){
+                $nomor_antrian = 0;
+                $jam_antrian_awal = 0;
+            }else{
+                $nomor_antrian = $db_antrian_pertama->nomor_antrian;
+                $jam_antrian_awal = $db_antrian_pertama->jam;
+            }
+
+            // $jumlah_antrian = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->count();
+
+            $db_antrian_user = Reservasi::where([['tanggal', $tanggal], ['status', 0], ['pasien_id', $user->id]])->orderBy('created_at', 'asc')->first();
+
+            if(!$db_antrian_user){
+                $jam_antrian_akhir = 0;
+                $nomor_antrian_user = 0;
+            }else{
+                $jam_antrian_akhir = $db_antrian_user->jam;
+                $nomor_antrian_user = $db_antrian_user->nomor_antrian;
+            }
+
+            // $waktu_tunggu = $db_antrian_user->jam - $db_antrian_pertama->jam;
         
-    // }
+            return response()->json([
+                'status'    => $this->successStatus,
+                'success'   => true,
+                'data' => [
+                    'nomor_antrian_saat_ini'    => $nomor_antrian,
+                    'nomor_antrian'=> $nomor_antrian_user,
+                    'jam'  => $jam_antrian_akhir
+                ]
+            ]);
+        }
+        
+    }
+
+    public function getRiwayatPembelian(Request $request)
+    {
+        $user = Auth::user();
+        $id_pasien = $user->id;
+        $history_pembelians = pembelian_produk::where('pasien_id', $id_pasien)->get();
+        foreach($history_pembelians as $history_pembelian){
+            $data[] = [
+                'nama_produk'    => $history_pembelian->nama_produk,
+                'jumlah'         => $history_pembelian->jumlah,
+                'tanggal'        => $history_pembelian->created_at->toDateString()
+                
+            ];
+        }
+            
+        return response()->json([
+            'status'    => $this->successStatus,
+            'success'   => true,
+            'data'       => $data    
+        ]);
+    }
 }
