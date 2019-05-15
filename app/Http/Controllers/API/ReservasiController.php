@@ -20,64 +20,122 @@ class ReservasiController extends Controller
     public $successStatus = 200;
     public function ambilAntrian(Request $request, Reservasi $reservasi)
     {
-        $tanggal        = date('Y-m-d');
+        $tanggal_sekarang        = date('Y-m-d');
         $user = Auth::user();
+        $jam            = date('H');
         if($user){
-            $cek_antrian = Reservasi::where([['pasien_id', $user->id], ['status', 0], ['tanggal', $tanggal]])->first();
+            if($jam < 16){
+                $cek_antrian = Reservasi::where([['pasien_id', $user->id], ['status', 0], ['tanggal', $tanggal_sekarang]])->first();
+                if($cek_antrian){
+                    return response()->json([
+                        'status'    => $this->successStatus,
+                        'success'   => false,
+                        'user'      => $user->id,
+                        'message'   => 'tidak bisa ambil antrian karena sudah mengambil'
+                    ]);
+                }
 
-            if($cek_antrian){
+                $jumlah_antrian = Reservasi::where([['tanggal', $tanggal_sekarang], ['status', 0]])->count();
+
+                if($jumlah_antrian == 0){
+                    $db_nomor_antrian   = 1;
+                    $db_jam             = 9;
+                    $db_tanggal         = $tanggal_sekarang;
+                    $db_antrian_saat_ini= 0;
+                }elseif($jumlah_antrian != 0){
+                    $antrian_pertama = Reservasi::where([['tanggal', $tanggal_sekarang], ['status', 0]])->orderBy('created_at', 'asc')->first();
+
+                    $antrian_terakhir = Reservasi::where([['tanggal', $tanggal_sekarang], ['status', 0]])->orderBy('created_at', 'desc')->first();
+
+                    $db_nomor_antrian   = $antrian_terakhir->nomor_antrian + 1;
+                    $db_jam             = $antrian_terakhir->jam + 1;
+                    $db_tanggal         = $tanggal_sekarang;
+                    $db_antrian_saat_ini= $antrian_pertama->nomor_antrian;
+                }
+
+                $reservasi   = Reservasi::create([
+                    'pasien_id'             => $user->id,
+                    'nomor_antrian'         => $db_nomor_antrian,
+                    'jam'                   => $db_jam,
+                    'tanggal'               => $db_tanggal,
+                    'status'                => false
+                ]);
+
+                $reservasi = (object) $reservasi;
+
+                $data = [
+                    'pasien_id'    => $reservasi->pasien_id,
+                    'nomor_antrian'=> $reservasi->nomor_antrian,
+                    'jam'          => $reservasi->jam,
+                    'tanggal'      => $reservasi->tanggal,
+                    'status'       => $reservasi->status,
+                    'nomor_antrian_saat_ini' => $db_antrian_saat_ini
+                    
+                ];
+
                 return response()->json([
                     'status'    => $this->successStatus,
-                    'success'   => false,
-                    'message'   => 'tidak bisa ambil antrian karena sudah mengambil'
+                    'success'   => true,
+                    'data'      => $data
+                ]);
+
+            }else{
+                //DAFTAR BUAT HARI ESOK
+                $tanggal_besok = Carbon::now()->addDay()->toDateString();
+                $cek_antrian = Reservasi::where([['pasien_id', $user->id], ['status', 0], ['tanggal', $tanggal_besok]])->first();
+                if($cek_antrian){
+                    return response()->json([
+                        'status'    => $this->successStatus,
+                        'success'   => false,
+                        'user'      => $user->id,
+                        'message'   => 'tidak bisa ambil antrian karena sudah mengambil'
+                    ]);
+                }
+
+                $jumlah_antrian = Reservasi::where([['tanggal', $tanggal_besok], ['status', 0]])->count();
+
+                if($jumlah_antrian == 0){
+                    $db_nomor_antrian   = 1;
+                    $db_jam             = 9;
+                    $db_tanggal         = $tanggal_besok;
+                    $db_antrian_saat_ini= 0;
+                }elseif($jumlah_antrian != 0){
+                    $antrian_pertama = Reservasi::where([['tanggal', $tanggal_besok], ['status', 0]])->orderBy('created_at', 'asc')->first();
+
+                    $antrian_terakhir = Reservasi::where([['tanggal', $tanggal_besok], ['status', 0]])->orderBy('created_at', 'desc')->first();
+
+                    $db_nomor_antrian   = $antrian_terakhir->nomor_antrian + 1;
+                    $db_jam             = $antrian_terakhir->jam + 1;
+                    $db_tanggal         = $tanggal_besok;
+                    $db_antrian_saat_ini= 0;
+                }
+
+                $reservasi   = Reservasi::create([
+                    'pasien_id'             => $user->id,
+                    'nomor_antrian'         => $db_nomor_antrian,
+                    'jam'                   => $db_jam,
+                    'tanggal'               => $db_tanggal,
+                    'status'                => false
+                ]);
+
+                $reservasi = (object) $reservasi;
+
+                $data = [
+                    'pasien_id'    => $reservasi->pasien_id,
+                    'nomor_antrian'=> $reservasi->nomor_antrian,
+                    'jam'          => $reservasi->jam,
+                    'tanggal'      => $reservasi->tanggal,
+                    'status'       => $reservasi->status,
+                    'nomor_antrian_saat_ini' => $db_antrian_saat_ini
+                    
+                ];
+
+                return response()->json([
+                    'status'    => $this->successStatus,
+                    'success'   => true,
+                    'data'      => $data
                 ]);
             }
-
-            $jam            = date('H');
-           
-            $jumlah_antrian = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->count();
-            
-            // ->order_by('upload_time', 'desc')->first()
-            if($jumlah_antrian == 0){
-                $nomor_antrian = 1;
-                $db_antrian_pertama = 0;
-
-                if($jam < 10){
-                    $db_jam = 9;    
-                }elseif($jam > 17){
-                    $tanggal = Carbon::now()->addDay()->toDateString();
-                    $jumlah_antrian_nextday = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'desc')->first();
-                    $db_jam = $jumlah_antrian_nextday->jam + 1;
-                    $nomor_antrian = $jumlah_antrian_nextday->nomor_antrian + 1;
-                    
-                }else{
-                    $db_jam = $jam + 1;
-                }
-            }else{
-                $db_antrian_terakhir = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'desc')->first();
-                $db_antrian_pertama = Reservasi::select('nomor_antrian')->where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'asc')->first();
-                $nomor_antrian = $jumlah_antrian + 1;
-                $db_jam = $db_antrian_terakhir->jam + 1;
-
-                $antrian_saat_ini = $db_antrian_pertama;
-            }
-
-            $reservasi   = Reservasi::create([
-                'pasien_id'             => $user->id,
-                'nomor_antrian'         => $nomor_antrian,
-                'jam'                   => $db_jam,
-                'tanggal'               => $tanggal,
-                'status'                => false
-            ]);
-
-            return response()->json([
-                'status'    => $this->successStatus,
-                'success'   => true,
-                'data'      => $reservasi, 
-                'nomor_antrian_saat_ini'      => $db_antrian_pertama
-            ]);
-            
-           
         } 
         
     }
@@ -143,19 +201,29 @@ class ReservasiController extends Controller
     {
         $user = Auth::user();
         $id_pasien = $user->id;
+        
+        $cek_history = $user->rekam_medis()->count();
         $history_mediss = $user->rekam_medis()->get();
-        foreach($history_mediss as $history_medis){
-            $perawatan = Perawatan::where('id', $history_medis->perawatan_id)->first();
-            $data[] = [
-                'tanggal'           => $history_medis->created_at->toDateString(),
-                'perawatan'         => $perawatan->nama_perawatan
-            ];
+        if(!$cek_history){
+            return response()->json([
+                'status'    => $this->successStatus,
+                'success'   => true,
+                'data'      => 'no history data' 
+            ]);
+        }else{
+            foreach($history_mediss as $history_medis){
+                $perawatan = Perawatan::where('id', $history_medis->perawatan_id)->first();
+                $data[] = [
+                    'tanggal'           => $history_medis->created_at->toDateString(),
+                    'perawatan'         => $perawatan->nama_perawatan
+                ];
+            }
         }
-            
+        
         return response()->json([
             'status'    => $this->successStatus,
             'success'   => true,
-            'data'       => $data    
+            'data'      => $data 
         ]);
     }
 
@@ -197,37 +265,37 @@ class ReservasiController extends Controller
         $user = Auth::user();
         $tanggal        = date('Y-m-d');
         if($user){
-            $db_antrian_pertama = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'asc')->first();
+            $antrian_pertama = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->orderBy('created_at', 'asc')->first();
             
-            if(!$db_antrian_pertama){
-                $nomor_antrian = 0;
-                $jam_antrian_awal = 0;
+            if(!$antrian_pertama){
+                $nomor_antrian_saat_ini = 0;
             }else{
-                $nomor_antrian = $db_antrian_pertama->nomor_antrian;
-                $jam_antrian_awal = $db_antrian_pertama->jam;
+                $nomor_antrian_saat_ini = $antrian_pertama->nomor_antrian;
             }
 
             // $jumlah_antrian = Reservasi::where([['tanggal', $tanggal], ['status', 0]])->count();
 
-            $db_antrian_user = Reservasi::where([['tanggal', $tanggal], ['status', 0], ['pasien_id', $user->id]])->orderBy('created_at', 'asc')->first();
-
-            if(!$db_antrian_user){
-                $jam_antrian_akhir = 0;
-                $nomor_antrian_user = 0;
+            $antrian_user = Reservasi::where([['tanggal', $tanggal], ['status', 0], ['pasien_id', $user->id]])->orderBy('created_at', 'asc')->first();
+            if(!$antrian_user){
+                $nomor_antrian = 0;
+                $jam    = '';
+                $db_tanggal = '';
             }else{
-                $jam_antrian_akhir = $db_antrian_user->jam;
-                $nomor_antrian_user = $db_antrian_user->nomor_antrian;
+                $nomor_antrian = $antrian_user->nomor_antrian;
+                $jam           = $antrian_user->jam;
+                $db_tanggal    = $antrian_user->tanggal; 
             }
 
-            // $waktu_tunggu = $db_antrian_user->jam - $db_antrian_pertama->jam;
+            // $waktu_tunggu = $antrian_user->jam - $db_antrian_pertama->jam;
         
             return response()->json([
                 'status'    => $this->successStatus,
                 'success'   => true,
                 'data' => [
-                    'nomor_antrian_saat_ini'    => $nomor_antrian,
-                    'nomor_antrian'=> $nomor_antrian_user,
-                    'jam'  => $jam_antrian_akhir
+                    'nomor_antrian_saat_ini'    => $nomor_antrian_saat_ini,
+                    'nomor_antrian'=> $nomor_antrian,
+                    'jam'  => $jam,
+                    'tanggal'=> $db_tanggal
                 ]
             ]);
         }
